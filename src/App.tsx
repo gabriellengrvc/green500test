@@ -1,30 +1,21 @@
 import { useState, useMemo, useCallback } from "react";
-import { ALL_COMPANIES, type Sector } from "./sp500";
-import { computeWeights, scoreAndRank, type ScoredCompany, type Horizon } from "./scoring";
+import { ALL_COMPANIES, METRIC_LABELS, type Sector } from "./sp500";
+import { scoreAndRank, type ScoredCompany } from "./scoring";
 import AppToolbar from "./components/AppToolbar";
 
 type Tab = "All" | Sector;
 
-const SECTOR_COLORS: Record<string, string> = {
-  Finance:    "#0071e3",
-  Tech:       "#8e44ad",
-  Industrial: "#d68910",
-  Energy:     "#e74c3c",
-  Healthcare: "#27ae60",
-  Consumer:   "#e67e22",
+const SECTOR_COLORS: Record<Sector, string> = {
+  "Communication Services": "#5856d6", "Consumer Discretionary": "#ff9500",
+  "Consumer Staples": "#a2845e", Energy: "#ff3b30", Financials: "#007aff",
+  "Health Care": "#34c759", Industrials: "#af52de", "Information Technology": "#5ac8fa",
+  Materials: "#8e8e93", "Real Estate": "#ff2d55", Utilities: "#30b0c7",
 };
 
 const SCORE_COLOR = (s: number) =>
   s >= 75 ? "#30d158" : s >= 50 ? "#34c759" : s >= 30 ? "#ff9f0a" : "#ff453a";
 
-const INDICATORS = [
-  { key: "emissionsIntensity", label: "Emissions Intensity", invert: true,  cat: "emissions" },
-  { key: "energyEfficiency",   label: "Energy Efficiency",   invert: false, cat: "emissions" },
-  { key: "carbonSensitivity",  label: "Carbon Sensitivity",  invert: true,  cat: "emissions" },
-  { key: "greenCapex",         label: "Green Capex",         invert: false, cat: "resilience" },
-  { key: "trackRecord",        label: "Track Record",        invert: false, cat: "resilience" },
-  { key: "rdGreen",            label: "R&D Green Tech",      invert: false, cat: "resilience" },
-] as const;
+const INDICATORS = METRIC_LABELS.map((label, index) => ({ label, index }));
 
 // Company logos use two independent market-data sources before a guaranteed monogram fallback.
 function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string; size?: number }) {
@@ -77,37 +68,20 @@ function MiniBar({ value, color }: { value: number; color: string }) {
   );
 }
 
-function IndicatorBar({ label, raw, invert, cat, emissionsWeight }: {
-  label: string; raw: number; invert: boolean; cat: string; emissionsWeight: number;
-}) {
-  const value = invert ? 100 - raw : raw;
-  const relevance = cat === "emissions" ? emissionsWeight : 1 - emissionsWeight;
-  const dim = relevance < 0.28;
-  const color = SCORE_COLOR(value);
-
+function IndicatorBar({ label, raw }: { label: string; raw: number }) {
+  const value = Math.round((raw / 3) * 100);
   return (
-    <div className="space-y-1" style={{ opacity: dim ? 0.35 : 1, transition: "opacity 0.3s" }}>
+    <div className="space-y-1">
       <div className="flex justify-between items-center">
-        <span className="text-[12px]" style={{ color: "#86868b", fontFamily: "-apple-system, 'SF Pro Text', sans-serif" }}>
-          {label}
-        </span>
-        <span
-          className="text-[11px] px-1.5 py-px rounded-full"
-          style={{
-            background: cat === "emissions" ? "rgba(0,113,227,0.08)" : "rgba(48,209,88,0.1)",
-            color: cat === "emissions" ? "#0071e3" : "#30d158",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {cat}
-        </span>
+        <span className="text-[12px]" style={{ color: "#636366" }}>{label}</span>
+        <span className="text-[11px] px-1.5 py-px rounded-full" style={{ background: "rgba(0,113,227,0.08)", color: "#0071e3", fontFamily: "var(--font-mono)" }}>{raw}/3</span>
       </div>
-      <MiniBar value={value} color={color} />
+      <MiniBar value={value} color="#0071e3" />
     </div>
   );
 }
 
-function ExpandedRow({ company, emissionsWeight }: { company: ScoredCompany; emissionsWeight: number }) {
+function ExpandedRow({ company }: { company: ScoredCompany }) {
   return (
     <tr className="row-expand">
       <td colSpan={7} className="px-4 pb-4 pt-0">
@@ -120,15 +94,8 @@ function ExpandedRow({ company, emissionsWeight }: { company: ScoredCompany; emi
             columnGap: 24,
           }}
         >
-          {INDICATORS.map((ind) => (
-            <IndicatorBar
-              key={ind.key}
-              label={ind.label}
-              raw={company[ind.key as keyof typeof company] as number}
-              invert={ind.invert}
-              cat={ind.cat}
-              emissionsWeight={emissionsWeight}
-            />
+          {INDICATORS.map((indicator) => (
+            <IndicatorBar key={indicator.label} label={indicator.label} raw={company.metrics[indicator.index]} />
           ))}
         </div>
       </td>
@@ -140,22 +107,18 @@ const PAGE_SIZE = 20;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const [horizon, setHorizon] = useState<Horizon>("short");
-  const [emissionsWeight, setEmissionsWeight] = useState(0.5);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<"rank" | "score" | "name">("rank");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const weights = useMemo(() => computeWeights(horizon, emissionsWeight), [horizon, emissionsWeight]);
-
   const scored = useMemo(() => {
     const sectorCompanies = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
     const query = searchQuery.trim().toLocaleLowerCase();
     const filtered = query ? sectorCompanies.filter(c => c.name.toLocaleLowerCase().includes(query) || c.ticker.toLocaleLowerCase().includes(query)) : sectorCompanies;
-    return scoreAndRank(filtered, weights);
-  }, [activeTab, searchQuery, weights]);
+    return scoreAndRank(filtered);
+  }, [activeTab, searchQuery]);
 
   const sorted = useMemo(() => {
     const arr = [...scored];
@@ -202,49 +165,10 @@ export default function App() {
           activeTab={activeTab}
           onTabChange={(t) => { setActiveTab(t); setPage(0); setExpanded(new Set()); }}
           count={sorted.length}
-          horizon={horizon}
-          onHorizonChange={setHorizon}
           searchQuery={searchQuery}
           onSearchQueryChange={(query) => { setSearchQuery(query); setPage(0); setExpanded(new Set()); }}
         />
 
-        {/* Emissions ↔ Resilience slider row */}
-        <div className="flex items-center gap-4 px-5 pb-3">
-          <span className="text-[13px]" style={{ color: emissionsWeight > 0.55 ? "#0071e3" : "#86868b", transition: "color 0.2s" }}>
-            Emissions
-          </span>
-          <div className="flex-1 max-w-xs flex flex-col gap-0.5">
-            <input
-              type="range"
-              min={0} max={1} step={0.05}
-              value={emissionsWeight}
-              onChange={e => { setEmissionsWeight(parseFloat(e.target.value)); setPage(0); }}
-              className="w-full cursor-pointer"
-            />
-            <div className="flex justify-between">
-              <span className="text-[11px]" style={{ color: "#d1d1d6", fontFamily: "var(--font-mono)" }}>
-                {Math.round(emissionsWeight * 100)}%
-              </span>
-              <span className="text-[11px]" style={{ color: "#d1d1d6", fontFamily: "var(--font-mono)" }}>
-                {Math.round((1 - emissionsWeight) * 100)}%
-              </span>
-            </div>
-          </div>
-          <span className="text-[13px]" style={{ color: emissionsWeight < 0.45 ? "#30d158" : "#86868b", transition: "color 0.2s" }}>
-            Resilience
-          </span>
-
-          <div className="ml-auto flex gap-2 text-[11px]" style={{ color: "#86868b" }}>
-            {(Object.entries(weights) as [string, number][])
-              .sort((a, b) => b[1] - a[1]).slice(0, 3)
-              .map(([k, v]) => (
-                <span key={k} style={{ fontFamily: "var(--font-mono)" }}>
-                  <span style={{ color: "#c7c7cc" }}>{k.replace(/([A-Z])/g, " $1").trim().split(" ").map(w => w[0]).join("").toUpperCase()}</span>
-                  {" "}<span style={{ color: "#0071e3" }}>{Math.round(v * 100)}%</span>
-                </span>
-              ))}
-          </div>
-        </div>
       </div>
 
       {/* Table */}
@@ -262,13 +186,13 @@ export default function App() {
                 SECTOR
               </th>
               <th className="text-left px-4 py-3 cursor-pointer select-none" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", minWidth: 180 }} onClick={() => handleSort("score")}>
-                ESG SCORE <SortArrow col="score" />
+                AVG MATERIALITY <SortArrow col="score" />
               </th>
               <th className="text-left px-4 py-3" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", minWidth: 100 }}>
-                EMISSIONS
+                ENVIRONMENTAL
               </th>
               <th className="text-left px-4 py-3" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", minWidth: 100 }}>
-                RESILIENCE
+                SOCIAL & RESILIENCE
               </th>
               <th style={{ width: 20 }} />
             </tr>
@@ -278,8 +202,8 @@ export default function App() {
               const isOpen = expanded.has(company.id);
               const sColor = SECTOR_COLORS[company.sector];
               const scoreColor = SCORE_COLOR(company.score);
-              const emAvg = Math.round(((100 - company.emissionsIntensity) + company.energyEfficiency + (100 - company.carbonSensitivity)) / 3);
-              const resAvg = Math.round((company.greenCapex + company.trackRecord + company.rdGreen) / 3);
+              const emAvg = Math.round((company.metrics.slice(0, 6).reduce((sum, value) => sum + value, 0) / 18) * 100);
+              const resAvg = Math.round((company.metrics.slice(6).reduce((sum, value) => sum + value, 0) / 27) * 100);
 
               return [
                 <tr
@@ -327,7 +251,7 @@ export default function App() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-[20px] font-semibold tabular-nums" style={{ color: scoreColor, minWidth: 36, fontFamily: "var(--font-mono)" }}>
-                        {company.score}
+                        {company.avgMateriality.toFixed(2)}
                       </span>
                       <div className="flex-1" style={{ minWidth: 80 }}>
                         <div className="rounded-full" style={{ height: 4, background: "#f2f2f7", minWidth: 80 }}>
@@ -357,7 +281,7 @@ export default function App() {
                 </tr>,
 
                 isOpen && (
-                  <ExpandedRow key={`${company.id}-exp`} company={company} emissionsWeight={emissionsWeight} />
+                  <ExpandedRow key={`${company.id}-exp`} company={company} />
                 ),
               ];
             })}
