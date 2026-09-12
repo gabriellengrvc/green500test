@@ -10,12 +10,12 @@ type Tab = "All" | Sector;
 const SECTOR_COLORS: Record<Sector, string> = {
   "Communication Services": "#5856d6", "Consumer Discretionary": "#ff9500",
   "Consumer Staples": "#a2845e", Energy: "#ff3b30", Financials: "#007aff",
-  "Health Care": "#34c759", Industrials: "#af52de", "Information Technology": "#5ac8fa",
+  "Health Care": "#79ab52", Industrials: "#af52de", "Information Technology": "#5ac8fa",
   Materials: "#8e8e93", "Real Estate": "#ff2d55", Utilities: "#30b0c7",
 };
 
 const SCORE_COLOR = (s: number) =>
-  s >= 75 ? "#30d158" : s >= 50 ? "#34c759" : s >= 30 ? "#ff9f0a" : "#ff453a";
+  s >= 75 ? "#79ab52" : s >= 50 ? "#79ab52" : s >= 30 ? "#ff9f0a" : "#ff453a";
 
 const INDICATORS = METRIC_LABELS.map((label, index) => ({ label, index }));
 
