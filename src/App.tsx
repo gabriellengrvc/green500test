@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { ALL_COMPANIES, METRIC_LABELS, type Sector } from "./sp500";
-import { scoreAndRank, type ScoredCompany } from "./scoring";
+import { DEFAULT_WEIGHTS, scoreAndRank, type ScoredCompany, type SustainabilityWeights } from "./scoring";
+import WeightControls from "./components/WeightControls";
+import PortfolioAllocator from "./components/PortfolioAllocator";
 import AppToolbar from "./components/AppToolbar";
 
 type Tab = "All" | Sector;
@@ -120,12 +122,14 @@ export default function App() {
   const [sortKey, setSortKey] = useState<"rank" | "score" | "name">("rank");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [weights, setWeights] = useState<SustainabilityWeights>(DEFAULT_WEIGHTS);
+  const [view, setView] = useState<"dashboard" | "portfolio">("dashboard");
 
   const scored = useMemo(() => {
     const sectorCompanies = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
     const query = searchQuery.trim().toLocaleLowerCase();
     const filtered = query ? sectorCompanies.filter(c => c.name.toLocaleLowerCase().includes(query) || c.ticker.toLocaleLowerCase().includes(query)) : sectorCompanies;
-    const ranked = scoreAndRank(filtered);
+    const ranked = scoreAndRank(filtered, weights);
     if (activeTab !== "All") return ranked;
     return [...ranked]
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
@@ -134,7 +138,7 @@ export default function App() {
         sectorRank: index + 1,
         sectorCount: companies.length,
       }));
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, weights]);
 
   const sorted = useMemo(() => {
     const arr = [...scored];
@@ -183,13 +187,17 @@ export default function App() {
           count={sorted.length}
           searchQuery={searchQuery}
           onSearchQueryChange={(query) => { setSearchQuery(query); setPage(0); setExpanded(new Set()); }}
+          view={view}
+          onViewChange={setView}
         />
 
       </div>
 
+      <WeightControls weights={weights} onChange={setWeights} />
+
       {/* Table */}
-      <div className="apple-shell mt-6 mb-10 rounded-[22px] overflow-hidden" style={{ background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06)" }}>
-        <table className="w-full border-collapse text-sm">
+      <div className={`${view === "dashboard" ? "block" : "hidden"} apple-shell mt-6 mb-10 rounded-[22px] overflow-hidden`} style={{ background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06)" }}>
+        <table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{width:"7%"}}/><col style={{width:"24%"}}/><col style={{width:"19%"}}/><col style={{width:"20%"}}/><col style={{width:"14%"}}/><col style={{width:"14%"}}/><col style={{width:"2%"}}/></colgroup>
           <thead>
             <tr style={{ borderBottom: "0.5px solid rgba(0,0,0,0.08)", background: "#fafafa" }}>
               <th className="text-left px-4 py-3 cursor-pointer select-none" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", width: 70 }} onClick={() => handleSort("rank")}>
@@ -216,8 +224,8 @@ export default function App() {
           <tbody>
             {pageData.map((company) => {
               const isOpen = expanded.has(company.id);
-              const sColor = SECTOR_COLORS[company.sector];
-              const scoreColor = "#a3c689";
+              const sColor = "#0071e3";
+              const scoreColor = "#79ab52";
               const emAvg = Math.round((company.metrics.slice(0, 6).reduce((sum, value) => sum + value, 0) / 18) * 100);
               const resAvg = Math.round((company.metrics.slice(6).reduce((sum, value) => sum + value, 0) / 27) * 100);
 
@@ -343,6 +351,7 @@ export default function App() {
           </span>
         </div>
       </div>
+      {view === "portfolio" && <PortfolioAllocator companies={ALL_COMPANIES} weights={weights} />}
     </div>
   );
 }
