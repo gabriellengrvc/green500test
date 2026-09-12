@@ -185,15 +185,8 @@ input[type=range]::-webkit-slider-thumb{background:#fff;border-color:rgba(0,0,0,
 .strategy-table .allocation-row { grid-template-columns: 1.65fr 1.15fr .42fr .62fr; }
 .strategy-table .theme-cell { display: flex; align-items: center; justify-content: flex-end; gap: 7px; color: #6e6e73; font-size: 11px; }
 .strategy-table .theme-cell i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
-.eligibility-card { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
-.eligibility-card > div { display: flex; gap: 11px; align-items: flex-start; background: #fff; border-radius: 18px; padding: 17px 18px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
-.eligibility-card p { margin: 0; font-size: 12px; }
-.eligibility-card small { display: block; margin-top: 4px; color: #86868b; line-height: 1.45; }
-.status-dot { width: 9px; height: 9px; margin-top: 3px; flex: 0 0 9px; border-radius: 50%; }
-.status-dot.included { background: var(--green); }
-.status-dot.excluded { background: #ff3b30; }
 @media (max-width: 900px) {
-  .strategy-grid, .eligibility-card { grid-template-columns: 1fr; }
+  .strategy-grid { grid-template-columns: 1fr; }
   .cash-bucket { grid-column: auto; }
   .strategy-table .allocation-row { grid-template-columns: 1.55fr .85fr .42fr .62fr; }
 }

@@ -223,35 +223,6 @@ export default function NetZeroFund({ companies }: Props) {
           </div>
         ))}
       </div>
-
-      <div className="eligibility-card">
-        <div>
-          <span className="status-dot included" />
-          <p>
-            <b>PEG included</b>
-            <small>
-              Verified in the dashboard’s current S&amp;P 500 universe and
-              allocated within nuclear-adjacent.
-            </small>
-          </p>
-        </div>
-      </div>
-
-      <div className="method-card">
-        <h3>Strategy rules</h3>
-        <p>
-          <b>Default targets:</b> range midpoints produce a complete 100%
-          allocation: 37.5% grid, 22.5% materials, 15% nuclear-adjacent, 12.5%
-          efficiency, and 12.5% cash. Named equities are equal-weighted inside
-          each sleeve because no security-level conviction weights were
-          supplied.
-        </p>
-        <p>
-          <b>Exclusions:</b> fossil-fuel producers and non-EV automakers receive
-          0%. This is a transparent strategy model—not investment advice, a
-          guarantee of returns, or proof of portfolio-level net-zero alignment.
-        </p>
-      </div>
     </section>
   )
 }
