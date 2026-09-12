@@ -98,7 +98,7 @@ function ExpandedRow({ company }: { company: ScoredCompany }) {
         <div
           className="rounded-[14px] p-4 grid gap-3 mx-10"
           style={{
-            background: "#fafafa",
+            background: "#ffffff",
             border: "0.5px solid rgba(0,0,0,0.08)",
             gridTemplateColumns: "1fr 1fr",
             columnGap: 24,
