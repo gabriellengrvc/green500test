@@ -1,98 +1,319 @@
-import { useMemo, useState } from "react";
-import { SECTORS, type Company, type Sector } from "../sp500";
+import { useMemo, useState } from "react"
+import type { Company } from "../sp500"
 
-interface Props { companies: Company[]; }
-interface ClimateCompany extends Company {
-  climateScore: number; intensity: number; momentum: number; credibility: number;
-  transition: number; risk: number; capacity: number;
-}
-const SECTOR_COLORS=["#79ab52","#0071e3","#af52de","#ff9500","#5ac8fa","#ff3b30","#a2845e","#5856d6","#30b0c7","#8e8e93","#ff2d55"];
-const BASELINE:Record<Sector,number>={
-  "Communication Services":8,"Consumer Discretionary":10,"Consumer Staples":7,Energy:4,Financials:13,
-  "Health Care":12,Industrials:9,"Information Technology":29,Materials:3,"Real Estate":3,Utilities:2
-};
-const hash=(value:string)=>[...value].reduce((sum,char)=>((sum*31+char.charCodeAt(0))>>>0),17);
-const clamp=(value:number,min=0,max=100)=>Math.min(max,Math.max(min,value));
-const compactCHF=(value:number)=>new Intl.NumberFormat("en-CH",{style:"currency",currency:"CHF",notation:"compact",maximumFractionDigits:1}).format(value);
-
-function modelCompany(company:Company,fund:number):ClimateCompany{
-  const seed=hash(company.ticker);
-  const climate=(company.metrics[0]+company.metrics[1]+company.metrics[4])/9*100;
-  const transition=(company.metrics[12]+company.metrics[14])/6*100;
-  const resilience=(company.metrics[13]/3)*100;
-  const intensity=clamp(112-climate*.82+(seed%31),12,145);
-  const momentum=clamp(22+transition*.58+(seed%23),10,96);
-  const credibility=clamp(18+resilience*.56+((seed>>3)%29),8,98);
-  const risk=clamp(45-company.metrics[9]*7+((seed>>5)%24),5,70);
-  const climateScore=Math.round(clamp((145-intensity)/1.33*.35+momentum*.25+credibility*.20+transition*.15+(100-risk)*.05));
-  const liquidityFactor=.55+((seed%46)/100);
-  const capacity=Math.max(fund*.005,Math.min(fund*.05,50_000_000*liquidityFactor));
-  return {...company,climateScore,intensity:Math.round(intensity),momentum:Math.round(momentum),credibility:Math.round(credibility),transition:Math.round(transition),risk:Math.round(risk),capacity};
+interface Props {
+  companies: Company[]
 }
 
-export default function NetZeroFund({companies}:Props){
-  const [fund,setFund]=useState(1_000_000_000);
-  const [maxPosition,setMaxPosition]=useState(5);
-  const [sectorBand,setSectorBand]=useState(5);
-  const result=useMemo(()=>{
-    const modeled=companies.map(company=>modelCompany(company,fund)).sort((a,b)=>b.climateScore-a.climateScore||a.name.localeCompare(b.name));
-    const weights=new Map<number,number>();
-    // Start every sector at its benchmark less the selected band, preventing accidental sector exclusion.
-    for(const sector of SECTORS){
-      const candidates=modeled.filter(company=>company.sector===sector).slice(0,8);
-      let target=Math.max(.5,BASELINE[sector]-sectorBand);
-      for(const company of candidates){
-        if(target<=.001) break;
-        const cap=Math.min(maxPosition,company.capacity/fund*100);
-        const weight=Math.min(cap,target);
-        if(weight>0){weights.set(company.id,weight);target-=weight;}
-      }
-    }
-    let allocated=[...weights.values()].reduce((sum,value)=>sum+value,0);
-    for(let passes=0;passes<8&&allocated<99.999;passes++){
-      for(const company of modeled){
-        if(allocated>=99.999) break;
-        const current=weights.get(company.id)??0;
-        const sectorTotal=[...weights].reduce((sum,[id,w])=>sum+(modeled.find(c=>c.id===id)?.sector===company.sector?w:0),0);
-        const sectorCap=BASELINE[company.sector]+sectorBand;
-        const companyCap=Math.min(maxPosition,company.capacity/fund*100);
-        const add=Math.min(companyCap-current,sectorCap-sectorTotal,100-allocated,.75);
-        if(add>.001){weights.set(company.id,current+add);allocated+=add;}
-      }
-    }
-    const rows=modeled.filter(company=>weights.has(company.id)).map(company=>({...company,weight:weights.get(company.id)??0})).sort((a,b)=>b.weight-a.weight||b.climateScore-a.climateScore);
-    const invested=rows.reduce((sum,row)=>sum+row.weight,0);
-    const weighted=(key:"intensity"|"momentum"|"credibility"|"climateScore")=>rows.reduce((sum,row)=>sum+row[key]*row.weight,0)/Math.max(invested,1);
-    const sectors=SECTORS.map(sector=>({sector,weight:rows.filter(row=>row.sector===sector).reduce((sum,row)=>sum+row.weight,0)}));
-    return {rows,sectors,invested,intensity:weighted("intensity"),momentum:weighted("momentum"),credibility:weighted("credibility"),score:weighted("climateScore")};
-  },[companies,fund,maxPosition,sectorBand]);
+type InvestedBucket = {
+  key: string
+  name: string
+  range: [number, number]
+  target: number
+  color: string
+  rationale: string
+  tickers: string[]
+}
 
-  let cursor=0;
-  const gradient=result.sectors.map(({sector,weight})=>{const start=cursor;cursor+=weight;return `${SECTOR_COLORS[SECTORS.indexOf(sector)]} ${start}% ${cursor}%`}).join(",");
-  return <section className="apple-shell netzero-card">
-    <div className="netzero-hero">
-      <div><p className="eyebrow">NET-ZERO FUND · HACKATHON MVP</p><h2>Transition optimizer</h2><p>Maximizes a forward-looking climate score while enforcing diversification, position limits, and modeled CHF 1B liquidity capacity.</p></div>
-      <div className="netzero-inputs">
-        <label>Fund size<input value={fund} min={1_000_000} step={10_000_000} type="number" onChange={e=>setFund(Math.max(1_000_000,Number(e.target.value)||0))}/></label>
-        <label>Max position <output>{maxPosition}%</output><input type="range" min="1" max="10" value={maxPosition} onChange={e=>setMaxPosition(Number(e.target.value))}/></label>
-        <label>Sector band <output>±{sectorBand}%</output><input type="range" min="0" max="10" value={sectorBand} onChange={e=>setSectorBand(Number(e.target.value))}/></label>
+const INVESTED_BUCKETS: InvestedBucket[] = [
+  {
+    key: "grid",
+    name: "Grid & electrification infrastructure",
+    range: [35, 40],
+    target: 37.5,
+    color: "#79ab52",
+    rationale:
+      "Fastest earnings realization, with project backlogs converting to revenue now.",
+    tickers: [
+      "ETN",
+      "VRT",
+      "HUBB",
+      "PWR",
+      "GEV",
+      "AEP",
+      "XEL",
+      "D",
+      "DTE",
+      "AEE",
+      "EVRG",
+      "SO",
+      "DUK",
+    ],
+  },
+  {
+    key: "materials",
+    name: "Materials & mining",
+    range: [20, 25],
+    target: 22.5,
+    color: "#0071e3",
+    rationale:
+      "Steady demand through the full buildout phase and less back-loaded than nuclear.",
+    tickers: ["FCX", "ALB", "LIN"],
+  },
+  {
+    key: "nuclear",
+    name: "Nuclear-adjacent",
+    range: [15, 15],
+    target: 15,
+    color: "#af52de",
+    rationale:
+      "A smaller seven-year position because permitting and construction push much of the earnings payoff beyond the fund horizon.",
+    tickers: ["CEG", "VST", "PEG"],
+  },
+  {
+    key: "efficiency",
+    name: "Efficiency tech",
+    range: [10, 15],
+    target: 12.5,
+    color: "#ff9500",
+    rationale:
+      "Semiconductors, HVAC electrification, and recurring replacement cycles.",
+    tickers: ["ON", "CARR", "TT", "JCI"],
+  },
+]
+
+const CASH = {
+  name: "Cash / flexibility",
+  range: [10, 15] as [number, number],
+  target: 12.5,
+  color: "#8e8e93",
+  rationale:
+    "Dry powder for execution and the planned rotation around years 6–7.",
+}
+
+const compactUSD = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value)
+
+const rangeLabel = ([minimum, maximum]: [number, number]) =>
+  minimum === maximum ? `${minimum}%` : `${minimum}–${maximum}%`
+
+export default function NetZeroFund({ companies }: Props) {
+  const [fund, setFund] = useState(1_000_000_000)
+
+  const strategy = useMemo(() => {
+    const byTicker = new Map(
+      companies.map((company) => [company.ticker, company]),
+    )
+    const buckets = INVESTED_BUCKETS.map((bucket) => {
+      const holdings = bucket.tickers
+        .map((ticker) => byTicker.get(ticker))
+        .filter((company): company is Company => Boolean(company))
+      const weight = holdings.length ? bucket.target / holdings.length : 0
+      return {
+        ...bucket,
+        holdings: holdings.map((company) => ({
+          ...company,
+          weight,
+          allocation: (fund * weight) / 100,
+        })),
+      }
+    })
+    const rows = buckets
+      .flatMap((bucket) =>
+        bucket.holdings.map((holding) => ({
+          ...holding,
+          bucket: bucket.name,
+          color: bucket.color,
+        })),
+      )
+      .sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name))
+    const invested = buckets.reduce((sum, bucket) => sum + bucket.target, 0)
+    return { buckets, rows, invested }
+  }, [companies, fund])
+
+  let cursor = 0
+  const slices = [...strategy.buckets, { ...CASH, key: "cash" }]
+  const gradient = slices
+    .map((bucket) => {
+      const start = cursor
+      cursor += bucket.target
+      return `${bucket.color} ${start}% ${cursor}%`
+    })
+    .join(",")
+
+  return (
+    <section className="apple-shell netzero-card">
+      <div className="netzero-hero strategy-hero">
+        <div>
+          <p className="eyebrow">NET-ZERO FUND · 7-YEAR STRATEGY</p>
+          <h2>Buildout first. Rotate with discipline.</h2>
+          <p>
+            A focused $1B transition portfolio tilted toward the infrastructure
+            earning from electrification now, with deliberate liquidity for a
+            year 6–7 rotation.
+          </p>
+        </div>
+        <div className="netzero-inputs strategy-input">
+          <label>
+            Fund size
+            <input
+              value={fund}
+              min={1_000_000}
+              step={10_000_000}
+              type="number"
+              onChange={(event) =>
+                setFund(Math.max(1_000_000, Number(event.target.value) || 0))
+              }
+            />
+          </label>
+        </div>
       </div>
-    </div>
-    <div className="model-banner"><strong>Modeled proxy</strong><span>Climate inputs are inferred from the current materiality sheet for product testing. Replace with licensed or verified issuer data before investment use.</span></div>
-    <div className="netzero-kpis">
-      <div><span>Climate score</span><strong>{result.score.toFixed(0)}</strong><small>/100 proxy</small></div>
-      <div><span>Carbon intensity</span><strong>{result.intensity.toFixed(0)}</strong><small>index = 100 baseline</small></div>
-      <div><span>Reduction momentum</span><strong>{result.momentum.toFixed(0)}</strong><small>/100 proxy</small></div>
-      <div><span>Target credibility</span><strong>{result.credibility.toFixed(0)}</strong><small>/100 proxy</small></div>
-    </div>
-    <div className="netzero-summary">
-      <div className="donut" style={{background:`conic-gradient(${gradient})`}}><div><strong>{compactCHF(fund)}</strong><span>{result.invested.toFixed(1)}% invested</span></div></div>
-      <div className="sector-legend">{result.sectors.map(({sector,weight})=><div key={sector}><i style={{background:SECTOR_COLORS[SECTORS.indexOf(sector)]}}/><span>{sector}</span><b>{weight.toFixed(1)}%</b></div>)}</div>
-    </div>
-    <div className="allocation-table netzero-table">
-      <div className="allocation-row allocation-header"><span>Company</span><span>Climate</span><span>Intensity</span><span>Weight / allocation</span></div>
-      {result.rows.map((row,index)=><div className="allocation-row" key={row.id}><span><em>{index+1}</em><span><b>{row.name}</b><small>{row.ticker} · {row.sector}</small></span></span><strong>{row.climateScore}</strong><span>{row.intensity}</span><b>{row.weight.toFixed(2)}% · {compactCHF(fund*row.weight/100)}</b></div>)}
-    </div>
-    <div className="method-card"><h3>Objective and guardrails</h3><p><b>Objective:</b> 35% lower emissions intensity, 25% reduction momentum, 20% target credibility, 15% transition investment, and 5% controversy risk. <b>Constraints:</b> every sector represented, sector exposure within the selected S&P 500 benchmark band, per-company cap, and modeled liquidity capacity.</p><p>This is a decision-support prototype—not investment advice, a forecast, or a guarantee of net zero. A production optimizer must ingest dated Scope 1, 2 and material Scope 3 emissions, enterprise value, revenue, targets, controversies, prices and average daily trading volume, with audit trails and periodic rebalancing.</p></div>
-  </section>;
+
+      <div className="strategy-kpis">
+        <div>
+          <span>Invested</span>
+          <strong>{strategy.invested}%</strong>
+          <small>{compactUSD((fund * strategy.invested) / 100)}</small>
+        </div>
+        <div>
+          <span>Cash reserve</span>
+          <strong>{CASH.target}%</strong>
+          <small>{compactUSD((fund * CASH.target) / 100)}</small>
+        </div>
+        <div>
+          <span>Named holdings</span>
+          <strong>{strategy.rows.length}</strong>
+          <small>current S&amp;P 500 members</small>
+        </div>
+        <div>
+          <span>Excluded</span>
+          <strong>0%</strong>
+          <small>fossil fuel &amp; non-EV auto</small>
+        </div>
+      </div>
+
+      <div className="strategy-grid">
+        {strategy.buckets.map((bucket) => (
+          <article className="strategy-bucket" key={bucket.key}>
+            <div className="strategy-bucket-heading">
+              <i style={{ background: bucket.color }} />
+              <div>
+                <h3>{bucket.name}</h3>
+                <span>{rangeLabel(bucket.range)} mandate</span>
+              </div>
+              <strong>{bucket.target}%</strong>
+            </div>
+            <p>{bucket.rationale}</p>
+            <small>
+              {compactUSD((fund * bucket.range[0]) / 100)}–
+              {compactUSD((fund * bucket.range[1]) / 100)} range
+            </small>
+            <div className="ticker-list">
+              {bucket.holdings.map((holding) => (
+                <span key={holding.ticker}>{holding.ticker}</span>
+              ))}
+            </div>
+          </article>
+        ))}
+        <article className="strategy-bucket cash-bucket">
+          <div className="strategy-bucket-heading">
+            <i style={{ background: CASH.color }} />
+            <div>
+              <h3>{CASH.name}</h3>
+              <span>{rangeLabel(CASH.range)} mandate</span>
+            </div>
+            <strong>{CASH.target}%</strong>
+          </div>
+          <p>{CASH.rationale}</p>
+          <small>
+            {compactUSD((fund * CASH.range[0]) / 100)}–
+            {compactUSD((fund * CASH.range[1]) / 100)} range
+          </small>
+        </article>
+      </div>
+
+      <div className="netzero-summary strategy-summary">
+        <div
+          className="donut"
+          style={{ background: `conic-gradient(${gradient})` }}
+        >
+          <div>
+            <strong>{compactUSD(fund)}</strong>
+            <span>100% allocated</span>
+          </div>
+        </div>
+        <div className="sector-legend">
+          {slices.map((bucket) => (
+            <div key={bucket.key}>
+              <i style={{ background: bucket.color }} />
+              <span>{bucket.name}</span>
+              <b>{bucket.target}%</b>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="allocation-table netzero-table strategy-table">
+        <div className="allocation-row allocation-header">
+          <span>Company</span>
+          <span>Theme</span>
+          <span>Weight</span>
+          <span>Allocation</span>
+        </div>
+        {strategy.rows.map((row, index) => (
+          <div className="allocation-row" key={row.id}>
+            <span>
+              <em>{index + 1}</em>
+              <span>
+                <b>{row.name}</b>
+                <small>
+                  {row.ticker} · {row.sector}
+                </small>
+              </span>
+            </span>
+            <span className="theme-cell">
+              <i style={{ background: row.color }} />
+              {row.bucket}
+            </span>
+            <strong>{row.weight.toFixed(2)}%</strong>
+            <b>{compactUSD(row.allocation)}</b>
+          </div>
+        ))}
+      </div>
+
+      <div className="eligibility-card">
+        <div>
+          <span className="status-dot included" />
+          <p>
+            <b>PEG included</b>
+            <small>
+              Verified in the dashboard’s current S&amp;P 500 universe and
+              allocated within nuclear-adjacent.
+            </small>
+          </p>
+        </div>
+        <div>
+          <span className="status-dot excluded" />
+          <p>
+            <b>TLN excluded</b>
+            <small>
+              Not a current S&amp;P 500 constituent, so it receives no
+              allocation in this index-constrained fund.
+            </small>
+          </p>
+        </div>
+      </div>
+
+      <div className="method-card">
+        <h3>Strategy rules</h3>
+        <p>
+          <b>Default targets:</b> range midpoints produce a complete 100%
+          allocation: 37.5% grid, 22.5% materials, 15% nuclear-adjacent, 12.5%
+          efficiency, and 12.5% cash. Named equities are equal-weighted inside
+          each sleeve because no security-level conviction weights were
+          supplied.
+        </p>
+        <p>
+          <b>Exclusions:</b> fossil-fuel producers and non-EV automakers receive
+          0%. This is a transparent strategy model—not investment advice, a
+          guarantee of returns, or proof of portfolio-level net-zero alignment.
+        </p>
+      </div>
+    </section>
+  )
 }
