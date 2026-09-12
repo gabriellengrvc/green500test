@@ -69,7 +69,7 @@ export default function PortfolioAllocator({ companies, weights }: Props) {
         <div className="allocation-row allocation-header"><span>Company</span><span>Score</span><span>Weight</span><span>Allocation</span></div>
         {rows.map((row, index) => <div className="allocation-row" key={row.id}><span><em>{index + 1}</em><span><b>{row.name}</b><small>{row.ticker} · {row.sector}</small></span></span><strong>{row.score}</strong><span>{row.share.toFixed(1)}%</span><b>{money.format(row.allocation)}</b></div>)}
       </div>
-      <p className="portfolio-note">Illustrative allocation only—not investment advice. Sustainability scores reflect the selected weights, not expected financial returns.</p>
+      <p className="portfolio-note">Disclaimer: this allocation is for educational and informational purposes only. Consult a financial professional if you are unsure.</p>
     </section>
   );
 }
