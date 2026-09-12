@@ -26,16 +26,22 @@ const INDICATORS = [
   { key: "rdGreen",            label: "R&D Green Tech",      invert: false, cat: "resilience" },
 ] as const;
 
-// Company logo via Clearbit with initial fallback
+// Company logos use two independent market-data sources before a guaranteed monogram fallback.
 function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string; size?: number }) {
   const initial = name.charAt(0).toUpperCase();
-  const [failed, setFailed] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const normalizedTicker = ticker.replaceAll(".", "-");
+  const sources = [
+    `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=png`,
+    `https://images.financialmodelingprep.com/symbol/${normalizedTicker}.png`,
+  ];
 
-  if (failed) {
+  if (sourceIndex >= sources.length) {
     return (
       <div
-        className="rounded-[10px] flex items-center justify-center shrink-0 font-semibold text-white"
-        style={{ width: size, height: size, background: "#e8e8ed", color: "#86868b", fontSize: size * 0.4 }}
+        className="rounded-[10px] flex items-center justify-center shrink-0 font-semibold"
+        style={{ width: size, height: size, background: "#e8e8ed", color: "#636366", fontSize: size * 0.4 }}
+        aria-label={`${name} logo fallback`}
       >
         {initial}
       </div>
@@ -44,14 +50,15 @@ function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string
 
   return (
     <div
-      className="rounded-[10px] shrink-0 overflow-hidden bg-white"
-      style={{ width: size, height: size, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)" }}
+      className="rounded-[10px] shrink-0 overflow-hidden flex items-center justify-center"
+      style={{ width: size, height: size, background: "#f2f2f7", boxShadow: "0 0 0 0.5px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06)" }}
     >
       <img
-        src={`https://images.financialmodelingprep.com/symbol/${ticker.replaceAll(".", "-")}.png`}
-        alt={name}
+        src={sources[sourceIndex]}
+        alt={`${name} logo`}
         className="w-full h-full object-contain p-1"
-        onError={() => setFailed(true)}
+        loading="lazy"
+        onError={() => setSourceIndex(index => index + 1)}
       />
     </div>
   );
