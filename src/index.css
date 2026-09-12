@@ -75,3 +75,66 @@ input[type=range]::-webkit-slider-thumb {
 }
 @media (max-width: 1200px) { .apple-shell { width: calc(100% - 80px); } }
 @media (max-width: 700px) { .apple-shell { width: calc(100% - 32px); } }
+
+
+/* Fixed local navigation inspired by Apple's product navigation. */
+.sector-nav {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.sector-tab,
+.interactive-row,
+.expand-chevron,
+button,
+input {
+  transition-duration: 360ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sector-tab:hover {
+  background: #e8e8ed !important;
+  transform: translateY(-1px);
+}
+
+.interactive-row {
+  transition-property: background-color, transform, box-shadow;
+}
+
+.interactive-row:hover {
+  background: #f7f7f9 !important;
+}
+
+.expand-chevron {
+  display: block;
+  margin: 0 auto;
+  transition-property: transform;
+  transform-origin: center;
+}
+
+.row-expand {
+  transform-origin: top;
+  animation: appleExpand 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes appleExpand {
+  from { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@media (max-width: 1100px) {
+  .sector-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (max-width: 650px) {
+  .sector-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

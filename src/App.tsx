@@ -17,6 +17,14 @@ const SCORE_COLOR = (s: number) =>
 
 const INDICATORS = METRIC_LABELS.map((label, index) => ({ label, index }));
 
+function ExpandChevron({ open }: { open: boolean }) {
+  return (
+    <svg className="expand-chevron" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }} width="22" height="14" viewBox="0 0 22 14" fill="none" aria-hidden="true">
+      <path d="M2 2.5L11 11.5L20 2.5" stroke="#6e6e73" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Company logos use two independent market-data sources before a guaranteed monogram fallback.
 function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string; size?: number }) {
   const initial = name.charAt(0).toUpperCase();
@@ -186,7 +194,7 @@ export default function App() {
                 SECTOR
               </th>
               <th className="text-left px-4 py-3 cursor-pointer select-none" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", minWidth: 180 }} onClick={() => handleSort("score")}>
-                AVG MATERIALITY <SortArrow col="score" />
+                SUSTAINABILITY SCORE <SortArrow col="score" />
               </th>
               <th className="text-left px-4 py-3" style={{ color: "#86868b", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", minWidth: 100 }}>
                 ENVIRONMENTAL
@@ -209,7 +217,7 @@ export default function App() {
                 <tr
                   key={company.id}
                   onClick={() => toggleExpanded(company.id)}
-                  className="cursor-pointer transition-colors"
+                  className="interactive-row cursor-pointer"
                   style={{ borderBottom: isOpen ? "none" : "0.5px solid rgba(0,0,0,0.06)" }}
                   onMouseEnter={e => { if (!isOpen) (e.currentTarget as HTMLElement).style.background = "#f9f9fb"; }}
                   onMouseLeave={e => { if (!isOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
@@ -276,7 +284,7 @@ export default function App() {
 
                   {/* Expand chevron */}
                   <td className="pr-4 py-3 text-center">
-                    <span style={{ color: "#c7c7cc", fontSize: 10, display: "block", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+                    <ExpandChevron open={isOpen} />
                   </td>
                 </tr>,
 
