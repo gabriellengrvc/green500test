@@ -19,8 +19,8 @@ const INDICATORS = METRIC_LABELS.map((label, index) => ({ label, index }));
 
 function ExpandChevron({ open }: { open: boolean }) {
   return (
-    <svg className="expand-chevron" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }} width="22" height="14" viewBox="0 0 22 14" fill="none" aria-hidden="true">
-      <path d="M2 2.5L11 11.5L20 2.5" stroke="#6e6e73" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className="expand-chevron" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }} width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
+      <path d="M1.5 1.5L6 6L10.5 1.5" stroke="#6e6e73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -69,7 +69,7 @@ function MiniBar({ value, color }: { value: number; color: string }) {
       <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: "#e8e8ed" }}>
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: color }} />
       </div>
-      <span className="text-[11px] tabular-nums" style={{ color: "#86868b", minWidth: 22, textAlign: "right", fontFamily: "var(--font-mono)" }}>
+      <span className="text-[11px] tabular-nums" style={{ color: "#86868b", minWidth: 22, textAlign: "right", fontFamily: "var(--font-sans)" }}>
         {value}
       </span>
     </div>
@@ -82,7 +82,7 @@ function IndicatorBar({ label, raw }: { label: string; raw: number }) {
     <div className="space-y-1">
       <div className="flex justify-between items-center">
         <span className="text-[12px]" style={{ color: "#636366" }}>{label}</span>
-        <span className="text-[11px] px-1.5 py-px rounded-full" style={{ background: "rgba(0,113,227,0.08)", color: "#0071e3", fontFamily: "var(--font-mono)" }}>{raw}/3</span>
+        <span className="text-[11px] px-1.5 py-px rounded-full" style={{ background: "rgba(0,113,227,0.08)", color: "#0071e3", fontFamily: "var(--font-sans)" }}>{raw}/3</span>
       </div>
       <MiniBar value={value} color="#0071e3" />
     </div>
@@ -125,7 +125,15 @@ export default function App() {
     const sectorCompanies = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
     const query = searchQuery.trim().toLocaleLowerCase();
     const filtered = query ? sectorCompanies.filter(c => c.name.toLocaleLowerCase().includes(query) || c.ticker.toLocaleLowerCase().includes(query)) : sectorCompanies;
-    return scoreAndRank(filtered);
+    const ranked = scoreAndRank(filtered);
+    if (activeTab !== "All") return ranked;
+    return [...ranked]
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+      .map((company, index, companies) => ({
+        ...company,
+        sectorRank: index + 1,
+        sectorCount: companies.length,
+      }));
   }, [activeTab, searchQuery]);
 
   const sorted = useMemo(() => {
@@ -225,10 +233,10 @@ export default function App() {
                   {/* Rank */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-[13px]" style={{ color: "#1d1d1f", fontFamily: "var(--font-mono)" }}>
-                        #{company.sectorRank}
+                      <span className="font-semibold text-[12px]" style={{ color: "#1d1d1f", fontFamily: "var(--font-sans)" }}>
+                        {company.sectorRank}
                       </span>
-                      <span className="text-[11px]" style={{ color: "#c7c7cc", fontFamily: "var(--font-mono)" }}>
+                      <span className="text-[11px]" style={{ color: "#c7c7cc", fontFamily: "var(--font-sans)" }}>
                         /{company.sectorCount}
                       </span>
                     </div>
@@ -240,7 +248,7 @@ export default function App() {
                       <CompanyLogo name={company.name} ticker={company.ticker} size={32} />
                       <div>
                         <div className="font-medium text-[14px]" style={{ color: "#1d1d1f" }}>{company.name}</div>
-                        <div className="text-[11px]" style={{ color: "#86868b", fontFamily: "var(--font-mono)" }}>{company.ticker}</div>
+                        <div className="text-[11px]" style={{ color: "#86868b", fontFamily: "var(--font-sans)" }}>{company.ticker}</div>
                       </div>
                     </div>
                   </td>
@@ -258,7 +266,7 @@ export default function App() {
                   {/* Score */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-[20px] font-semibold tabular-nums" style={{ color: scoreColor, minWidth: 42, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif", letterSpacing: "-0.02em" }}>
+                      <span className="text-[16px] font-semibold tabular-nums" style={{ color: scoreColor, minWidth: 36, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif", letterSpacing: "-0.02em" }}>
                         {company.avgMateriality.toFixed(2)}
                       </span>
                       <div className="flex-1" style={{ minWidth: 80 }}>
@@ -319,7 +327,7 @@ export default function App() {
                     minWidth: 30, height: 30,
                     background: p === page ? "#0071e3" : "transparent",
                     color: p === page ? "#ffffff" : "#1d1d1f",
-                    fontFamily: "var(--font-mono)",
+                    fontFamily: "var(--font-sans)",
                     border: "none", cursor: "pointer",
                   }}
                 >
@@ -330,7 +338,7 @@ export default function App() {
             <PaginationBtn onClick={() => setPage(p => p + 1)} disabled={totalPages === 0 || page === totalPages - 1} label="›" />
             <PaginationBtn onClick={() => setPage(totalPages - 1)} disabled={totalPages === 0 || page === totalPages - 1} label="»" />
           </div>
-          <span className="text-[13px]" style={{ color: "#c7c7cc", fontFamily: "var(--font-mono)" }}>
+          <span className="text-[13px]" style={{ color: "#c7c7cc", fontFamily: "var(--font-sans)" }}>
             {totalPages === 0 ? 0 : page + 1} / {totalPages}
           </span>
         </div>
