@@ -3,6 +3,7 @@ import { ALL_COMPANIES, METRIC_LABELS, type Sector } from "./sp500";
 import { DEFAULT_WEIGHTS, scoreAndRank, type ScoredCompany, type SustainabilityWeights } from "./scoring";
 import WeightControls from "./components/WeightControls";
 import PortfolioAllocator from "./components/PortfolioAllocator";
+import NetZeroFund from "./components/NetZeroFund";
 import AppToolbar from "./components/AppToolbar";
 
 type Tab = "All" | Sector;
@@ -123,7 +124,7 @@ export default function App() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [weights, setWeights] = useState<SustainabilityWeights>(DEFAULT_WEIGHTS);
-  const [view, setView] = useState<"dashboard" | "portfolio">("dashboard");
+  const [view, setView] = useState<"dashboard" | "portfolio" | "netzero">("dashboard");
 
   const scored = useMemo(() => {
     const sectorCompanies = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
@@ -193,7 +194,7 @@ export default function App() {
 
       </div>
 
-      <WeightControls weights={weights} onChange={setWeights} />
+      {view !== "netzero" && <WeightControls weights={weights} onChange={setWeights} />}
 
       {/* Table */}
       <div className={`${view === "dashboard" ? "block" : "hidden"} apple-shell mt-6 mb-10 rounded-[22px] overflow-hidden`} style={{ background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06)" }}>
@@ -352,6 +353,7 @@ export default function App() {
         </div>
       </div>
       {view === "portfolio" && <PortfolioAllocator companies={ALL_COMPANIES} weights={weights} />}
+      {view === "netzero" && <NetZeroFund companies={ALL_COMPANIES} />}
     </div>
   );
 }
