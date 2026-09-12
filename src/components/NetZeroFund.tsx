@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import type { Company } from "../sp500"
 
 interface Props {
@@ -93,7 +93,7 @@ const rangeLabel = ([minimum, maximum]: [number, number]) =>
   minimum === maximum ? `${minimum}%` : `${minimum}–${maximum}%`
 
 export default function NetZeroFund({ companies }: Props) {
-  const [fund, setFund] = useState(1_000_000_000)
+  const fund = 1_000_000_000
 
   const strategy = useMemo(() => {
     const byTicker = new Map(
@@ -122,9 +122,8 @@ export default function NetZeroFund({ companies }: Props) {
         })),
       )
       .sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name))
-    const invested = buckets.reduce((sum, bucket) => sum + bucket.target, 0)
-    return { buckets, rows, invested }
-  }, [companies, fund])
+    return { buckets, rows }
+  }, [companies])
 
   let cursor = 0
   const slices = [...strategy.buckets, { ...CASH, key: "cash" }]
@@ -138,55 +137,6 @@ export default function NetZeroFund({ companies }: Props) {
 
   return (
     <section className="apple-shell netzero-card">
-      <div className="netzero-hero strategy-hero">
-        <div>
-          <p className="eyebrow">NET-ZERO FUND · 7-YEAR STRATEGY</p>
-          <h2>Buildout first. Rotate with discipline.</h2>
-          <p>
-            A focused $1B transition portfolio tilted toward the infrastructure
-            earning from electrification now, with deliberate liquidity for a
-            year 6–7 rotation.
-          </p>
-        </div>
-        <div className="netzero-inputs strategy-input">
-          <label>
-            Fund size
-            <input
-              value={fund}
-              min={1_000_000}
-              step={10_000_000}
-              type="number"
-              onChange={(event) =>
-                setFund(Math.max(1_000_000, Number(event.target.value) || 0))
-              }
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="strategy-kpis">
-        <div>
-          <span>Invested</span>
-          <strong>{strategy.invested}%</strong>
-          <small>{compactUSD((fund * strategy.invested) / 100)}</small>
-        </div>
-        <div>
-          <span>Cash reserve</span>
-          <strong>{CASH.target}%</strong>
-          <small>{compactUSD((fund * CASH.target) / 100)}</small>
-        </div>
-        <div>
-          <span>Named holdings</span>
-          <strong>{strategy.rows.length}</strong>
-          <small>current S&amp;P 500 members</small>
-        </div>
-        <div>
-          <span>Excluded</span>
-          <strong>0%</strong>
-          <small>fossil fuel &amp; non-EV auto</small>
-        </div>
-      </div>
-
       <div className="strategy-grid">
         {strategy.buckets.map((bucket) => (
           <article className="strategy-bucket" key={bucket.key}>
@@ -194,9 +144,8 @@ export default function NetZeroFund({ companies }: Props) {
               <i style={{ background: bucket.color }} />
               <div>
                 <h3>{bucket.name}</h3>
-                <span>{rangeLabel(bucket.range)} mandate</span>
               </div>
-              <strong>{bucket.target}%</strong>
+              <strong>{rangeLabel(bucket.range)}</strong>
             </div>
             <p>{bucket.rationale}</p>
             <small>
@@ -215,9 +164,8 @@ export default function NetZeroFund({ companies }: Props) {
             <i style={{ background: CASH.color }} />
             <div>
               <h3>{CASH.name}</h3>
-              <span>{rangeLabel(CASH.range)} mandate</span>
             </div>
-            <strong>{CASH.target}%</strong>
+            <strong>{rangeLabel(CASH.range)}</strong>
           </div>
           <p>{CASH.rationale}</p>
           <small>
@@ -284,16 +232,6 @@ export default function NetZeroFund({ companies }: Props) {
             <small>
               Verified in the dashboard’s current S&amp;P 500 universe and
               allocated within nuclear-adjacent.
-            </small>
-          </p>
-        </div>
-        <div>
-          <span className="status-dot excluded" />
-          <p>
-            <b>TLN excluded</b>
-            <small>
-              Not a current S&amp;P 500 constituent, so it receives no
-              allocation in this index-constrained fund.
             </small>
           </p>
         </div>

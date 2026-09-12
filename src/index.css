@@ -166,14 +166,8 @@ input[type=range]::-webkit-slider-thumb{background:#fff;border-color:rgba(0,0,0,
 @media(max-width:900px){.netzero-hero{flex-direction:column}.netzero-inputs{min-width:0}.netzero-kpis{grid-template-columns:repeat(2,1fr)}.netzero-summary{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.netzero-inputs,.netzero-kpis{grid-template-columns:1fr}.netzero-inputs label:first-child{grid-column:auto}}
 
+
 /* Explicit seven-year net-zero strategy */
-.strategy-hero { align-items: center; }
-.strategy-input { display: block; min-width: 220px; }
-.strategy-input label:first-child { display: block; }
-.strategy-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
-.strategy-kpis > div { background: #fff; border-radius: 18px; padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
-.strategy-kpis span, .strategy-kpis small { display: block; color: #86868b; font-size: 11px; }
-.strategy-kpis strong { display: block; margin: 7px 0 2px; color: var(--green); font-size: 25px; letter-spacing: -.6px; }
 .strategy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .strategy-bucket { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
 .strategy-bucket-heading { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 11px; }
@@ -191,7 +185,7 @@ input[type=range]::-webkit-slider-thumb{background:#fff;border-color:rgba(0,0,0,
 .strategy-table .allocation-row { grid-template-columns: 1.65fr 1.15fr .42fr .62fr; }
 .strategy-table .theme-cell { display: flex; align-items: center; justify-content: flex-end; gap: 7px; color: #6e6e73; font-size: 11px; }
 .strategy-table .theme-cell i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
-.eligibility-card { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+.eligibility-card { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
 .eligibility-card > div { display: flex; gap: 11px; align-items: flex-start; background: #fff; border-radius: 18px; padding: 17px 18px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
 .eligibility-card p { margin: 0; font-size: 12px; }
 .eligibility-card small { display: block; margin-top: 4px; color: #86868b; line-height: 1.45; }
@@ -199,13 +193,11 @@ input[type=range]::-webkit-slider-thumb{background:#fff;border-color:rgba(0,0,0,
 .status-dot.included { background: var(--green); }
 .status-dot.excluded { background: #ff3b30; }
 @media (max-width: 900px) {
-  .strategy-kpis { grid-template-columns: repeat(2, 1fr); }
   .strategy-grid, .eligibility-card { grid-template-columns: 1fr; }
   .cash-bucket { grid-column: auto; }
   .strategy-table .allocation-row { grid-template-columns: 1.55fr .85fr .42fr .62fr; }
 }
 @media (max-width: 620px) {
-  .strategy-kpis { grid-template-columns: 1fr; }
   .strategy-table { overflow-x: auto; }
   .strategy-table .allocation-row { min-width: 720px; }
 }
