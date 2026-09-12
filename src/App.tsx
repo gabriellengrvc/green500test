@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { ALL_COMPANIES, type Sector } from "./data";
+import { ALL_COMPANIES, type Sector } from "./sp500";
 import { computeWeights, scoreAndRank, type ScoredCompany, type Horizon } from "./scoring";
 import AppToolbar from "./components/AppToolbar";
 
@@ -27,7 +27,7 @@ const INDICATORS = [
 ] as const;
 
 // Company logo via Clearbit with initial fallback
-function CompanyLogo({ name, domain, size = 32 }: { name: string; domain: string; size?: number }) {
+function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string; size?: number }) {
   const initial = name.charAt(0).toUpperCase();
   const [failed, setFailed] = useState(false);
 
@@ -48,9 +48,9 @@ function CompanyLogo({ name, domain, size = 32 }: { name: string; domain: string
       style={{ width: size, height: size, boxShadow: "0 0 0 0.5px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)" }}
     >
       <img
-        src={`https://logo.clearbit.com/${domain}`}
+        src={`https://images.financialmodelingprep.com/symbol/${ticker.replaceAll(".", "-")}.png`}
         alt={name}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain p-1"
         onError={() => setFailed(true)}
       />
     </div>
@@ -139,13 +139,16 @@ export default function App() {
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<"rank" | "score" | "name">("rank");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const weights = useMemo(() => computeWeights(horizon, emissionsWeight), [horizon, emissionsWeight]);
 
   const scored = useMemo(() => {
-    const filtered = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
+    const sectorCompanies = activeTab === "All" ? ALL_COMPANIES : ALL_COMPANIES.filter(c => c.sector === activeTab);
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const filtered = query ? sectorCompanies.filter(c => c.name.toLocaleLowerCase().includes(query) || c.ticker.toLocaleLowerCase().includes(query)) : sectorCompanies;
     return scoreAndRank(filtered, weights);
-  }, [activeTab, weights]);
+  }, [activeTab, searchQuery, weights]);
 
   const sorted = useMemo(() => {
     const arr = [...scored];
@@ -194,6 +197,8 @@ export default function App() {
           count={sorted.length}
           horizon={horizon}
           onHorizonChange={setHorizon}
+          searchQuery={searchQuery}
+          onSearchQueryChange={(query) => { setSearchQuery(query); setPage(0); setExpanded(new Set()); }}
         />
 
         {/* Emissions ↔ Resilience slider row */}
@@ -293,7 +298,7 @@ export default function App() {
                   {/* Company */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <CompanyLogo name={company.name} domain={company.domain} size={32} />
+                      <CompanyLogo name={company.name} ticker={company.ticker} size={32} />
                       <div>
                         <div className="font-medium text-[14px]" style={{ color: "#1d1d1f" }}>{company.name}</div>
                         <div className="text-[11px]" style={{ color: "#86868b", fontFamily: "var(--font-mono)" }}>{company.ticker}</div>
@@ -349,13 +354,16 @@ export default function App() {
                 ),
               ];
             })}
+            {pageData.length === 0 && (
+              <tr><td colSpan={7} className="px-5 py-14 text-center text-[14px]" style={{ color: "#86868b" }}>No companies match “{searchQuery}”.</td></tr>
+            )}
           </tbody>
         </table>
 
         {/* Pagination — Apple-style */}
         <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: "0.5px solid rgba(0,0,0,0.08)" }}>
           <span className="text-[13px]" style={{ color: "#86868b" }}>
-            {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} of {sorted.length}
+            {sorted.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} of {sorted.length}
           </span>
           <div className="flex items-center gap-1">
             <PaginationBtn onClick={() => setPage(0)} disabled={page === 0} label="«" />
@@ -380,11 +388,11 @@ export default function App() {
                 </button>
               );
             })}
-            <PaginationBtn onClick={() => setPage(p => p + 1)} disabled={page === totalPages - 1} label="›" />
-            <PaginationBtn onClick={() => setPage(totalPages - 1)} disabled={page === totalPages - 1} label="»" />
+            <PaginationBtn onClick={() => setPage(p => p + 1)} disabled={totalPages === 0 || page === totalPages - 1} label="›" />
+            <PaginationBtn onClick={() => setPage(totalPages - 1)} disabled={totalPages === 0 || page === totalPages - 1} label="»" />
           </div>
           <span className="text-[13px]" style={{ color: "#c7c7cc", fontFamily: "var(--font-mono)" }}>
-            {page + 1} / {totalPages}
+            {totalPages === 0 ? 0 : page + 1} / {totalPages}
           </span>
         </div>
       </div>
