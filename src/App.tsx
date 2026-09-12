@@ -56,7 +56,7 @@ function CompanyLogo({ name, ticker, size = 32 }: { name: string; ticker: string
       <img
         src={sources[sourceIndex]}
         alt={`${name} logo`}
-        className="w-full h-full object-contain p-1"
+        className="w-full h-full object-cover"
         loading="lazy"
         onError={() => setSourceIndex(index => index + 1)}
       />
