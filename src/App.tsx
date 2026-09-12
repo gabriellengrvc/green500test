@@ -217,7 +217,7 @@ export default function App() {
             {pageData.map((company) => {
               const isOpen = expanded.has(company.id);
               const sColor = SECTOR_COLORS[company.sector];
-              const scoreColor = SCORE_COLOR(company.score);
+              const scoreColor = "#a3c689";
               const emAvg = Math.round((company.metrics.slice(0, 6).reduce((sum, value) => sum + value, 0) / 18) * 100);
               const resAvg = Math.round((company.metrics.slice(6).reduce((sum, value) => sum + value, 0) / 27) * 100);
 
