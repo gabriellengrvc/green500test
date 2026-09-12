@@ -172,7 +172,7 @@ export default function App() {
       </div>
 
       {/* Table */}
-      <div className="mx-4 mt-4 mb-4 rounded-[18px] overflow-hidden" style={{ background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06)" }}>
+      <div className="apple-shell mt-6 mb-10 rounded-[22px] overflow-hidden" style={{ background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06)" }}>
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr style={{ borderBottom: "0.5px solid rgba(0,0,0,0.08)", background: "#fafafa" }}>
@@ -250,7 +250,7 @@ export default function App() {
                   {/* Score */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-[20px] font-semibold tabular-nums" style={{ color: scoreColor, minWidth: 36, fontFamily: "var(--font-mono)" }}>
+                      <span className="text-[20px] font-semibold tabular-nums" style={{ color: scoreColor, minWidth: 42, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif", letterSpacing: "-0.02em" }}>
                         {company.avgMateriality.toFixed(2)}
                       </span>
                       <div className="flex-1" style={{ minWidth: 80 }}>
